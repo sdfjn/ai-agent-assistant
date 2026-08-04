@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🤖 AI Agent Assistant — 小A</title>
+<style>
+  /* ============================================
+     全局样式 — 干净、现代、暗色主题
+     ============================================ */
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    background: #1a1a2e;
+    color: #e0e0e0;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ─── 顶栏 ─── */
+  .header {
+    background: #16213e;
+    padding: 16px 24px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    border-bottom: 1px solid #2a2a4a;
+    flex-shrink: 0;
+  }
+  .header .logo { font-size: 24px; }
+  .header h1 { font-size: 18px; font-weight: 600; color: #fff; }
+  .header .badge {
+    background: #0f3460;
+    color: #64b5f6;
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 12px;
+    margin-left: auto;
+  }
+
+  /* ─── 聊天区域 ─── */
+  .chat-container {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  /* 消息气泡 */
+  .message {
+    display: flex;
+    gap: 10px;
+    max-width: 85%;
+    animation: fadeIn 0.3s ease;
+  }
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .message.user {
+    align-self: flex-end;
+    flex-direction: row-reverse;
+  }
+
+  .message .avatar {
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+    flex-shrink: 0;
+  }
+  .message.user .avatar { background: #1a5276; }
+  .message.assistant .avatar { background: #0f3460; }
+
+  .message .bubble {
+    background: #16213e;
+    padding: 12px 16px;
+    border-radius: 16px;
+    line-height: 1.6;
+    border: 1px solid #2a2a4a;
+  }
+  .message.user .bubble {
+    background: #1a5276;
+    border-color: #1a6a9a;
+  }
+
+  /* ─── Agent 思考过程卡片 ─── */
+  .process-card {
+    background: #16213e;
+    border: 1px solid #2a2a4a;
+    border-radius: 12px;
+    padding: 12px 16px;
+    margin: 8px 0;
+    border-left: 3px solid #64b5f6;
+    animation: fadeIn 0.3s ease;
+  }
+  .process-card.thinking {
+    border-left-color: #ffd54f;
+  }
+  .process-card.tool_call {
+    border-left-color: #4fc3f7;
+  }
+  .process-card.tool_result {
+    border-left-color: #81c784;
+  }
+  .process-card.error {
+    border-left-color: #e57373;
+  }
+
+  .process-card .label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: #90a4ae;
+    margin-bottom: 4px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .process-card .label .icon { font-size: 14px; }
+
+  .process-card pre {
+    background: #0d1b2a;
+    padding: 8px 12px;
+    border-radius: 8px;
+    font-size: 13px;
+    overflow-x: auto;
+    margin-top: 6px;
+    color: #81c784;
+  }
+
+  /* ─── 输入区域 ─── */
+  .input-area {
+    background: #16213e;
+    padding: 16px 24px;
+    display: flex;
+    gap: 12px;
+    border-top: 1px solid #2a2a4a;
+    flex-shrink: 0;
+  }
+  .input-area input {
+    flex: 1;
+    background: #0d1b2a;
+    border: 1px solid #2a2a4a;
+    border-radius: 24px;
+    padding: 12px 20px;
+    color: #e0e0e0;
+    font-size: 15px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .input-area input:focus {
+    border-color: #64b5f6;
+  }
+  .input-area button {
+    background: #1a5276;
+    color: #fff;
+    border: none;
+    border-radius: 24px;
+    padding: 12px 24px;
+    font-size: 15px;
+    cursor: pointer;
+    transition: background 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .input-area button:hover { background: #1a6a9a; }
+  .input-area button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  /* ─── 快捷提问按钮 ─── */
+  .quick-actions {
+    display: flex;
+    gap: 8px;
+    padding: 0 24px 12px;
+    flex-wrap: wrap;
+  }
+  .quick-actions button {
+    background: #0d1b2a;
+    border: 1px solid #2a2a4a;
+    color: #64b5f6;
+    padding: 6px 14px;
+    border-radius: 16px;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .quick-actions button:hover {
+    background: #1a2a4a;
+    border-color: #64b5f6;
+  }
+
+  /* ─── 滚动条 ─── */
+  .chat-container::-webkit-scrollbar { width: 6px; }
+  .chat-container::-webkit-scrollbar-track { background: transparent; }
+  .chat-container::-webkit-scrollbar-thumb { background: #2a2a4a; border-radius: 3px; }
+
+  /* ─── 响应式 ─── */
+  @media (max-width: 600px) {
+    .message { max-width: 95%; }
+    .header { padding: 12px 16px; }
+    .input-area { padding: 12px 16px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════════════
+     顶栏
+     ═══════════════════════════════════════════════════════════ -->
+<div class="header">
+  <span class="logo">🤖</span>
+  <h1>AI Assistant 小A v2.0</h1>
+  <span class="badge" id="agentBadge" style="cursor:pointer;background:#1a3a1a;color:#81c784;" title="点击切换Agent模式" onclick="toggleAgentMode()">LangChain</span>
+  <span class="badge" id="modelBadge">加载中...</span>
+  <span class="badge" id="ragBadge" style="background:#1a3a1a;color:#81c784;display:none">RAG</span>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     聊天消息区
+     ═══════════════════════════════════════════════════════════ -->
+<div class="chat-container" id="chatContainer">
+  <div class="message assistant">
+    <div class="avatar">🤖</div>
+    <div class="bubble">
+      你好！我是小A，你的 AI 助手 (v2.0)。<br><br>
+      我可以帮你：<br>
+      🌤️ <b>查天气</b> — 试试问"北京今天天气怎么样？"<br>
+      ⏰ <b>查时间</b> — 试试问"现在几点了？"<br>
+      📚 <b>搜知识库</b> — 试试问"什么是RAG？""Transformer怎么工作的？"<br>
+      💬 <b>聊天</b> — 随便聊聊<br><br>
+      <small>顶栏可切换 Agent 模式：<b>LangChain</b>（框架版） / <b>Native</b>（手写版）</small>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     快捷操作按钮
+     ═══════════════════════════════════════════════════════════ -->
+<div class="quick-actions" id="quickActions">
+  <button onclick="quickAsk('北京今天天气怎么样？')">🌤️ 查天气</button>
+  <button onclick="quickAsk('现在几点了？')">⏰ 查时间</button>
+  <button onclick="quickAsk('什么是RAG技术？')">📚 什么是RAG？</button>
+  <button onclick="quickAsk('Transformer的核心原理是什么？')">📚 Transformer原理</button>
+  <button onclick="quickAsk('解释一下机器学习有哪几类？')">📚 机器学习分类</button>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     输入区域
+     ═══════════════════════════════════════════════════════════ -->
+<div class="input-area">
+  <input
+    type="text"
+    id="userInput"
+    placeholder="输入消息，比如 '深圳天气怎么样？'"
+    onkeydown="if(event.key==='Enter' && !event.shiftKey) sendMessage()"
+  />
+  <button id="sendBtn" onclick="sendMessage()">
+    <span>➤</span> 发送
+  </button>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     JavaScript 核心逻辑
+     ═══════════════════════════════════════════════════════════ -->
+<script>
+// ─── 全局状态 ─────────────────────────────────────────────────
+let conversationHistory = [];   // 对话历史（发给后端保持上下文）
+let isProcessing = false;      // 是否正在处理中（防止重复发送）
+let agentMode = 'langchain';   // 🆕 Agent 模式: 'langchain' | 'native'
+
+// ─── DOM 元素引用 ─────────────────────────────────────────────
+const chatContainer = document.getElementById('chatContainer');
+const userInput = document.getElementById('userInput');
+const sendBtn = document.getElementById('sendBtn');
+const modelBadge = document.getElementById('modelBadge');
+const ragBadge = document.getElementById('ragBadge');
+const agentBadge = document.getElementById('agentBadge');
+
+// ─── 🆕 Agent 模式切换 ──────────────────────────────────────────
+function toggleAgentMode() {
+  // 切换前先清空对话历史
+  if (conversationHistory.length > 0) {
+    if (!confirm('切换模式会清空当前对话历史，确定吗？')) return;
+  }
+  agentMode = agentMode === 'langchain' ? 'native' : 'langchain';
+  agentBadge.textContent = agentMode === 'langchain' ? 'LangChain' : 'Native';
+  agentBadge.style.background = agentMode === 'langchain' ? '#1a3a1a' : '#1a1a3a';
+  agentBadge.style.color = agentMode === 'langchain' ? '#81c784' : '#64b5f6';
+  conversationHistory = [];  // 清空历史
+
+  appendMessage('assistant',
+    agentMode === 'langchain'
+      ? '已切换到 <b>LangChain 模式</b>（框架版 AgentExecutor）'
+      : '已切换到 <b>Native 模式</b>（手写 ReAct 循环）'
+  );
+}
+
+// ─── 初始化：检查 API 和 RAG 状态 ──────────────────────────────
+async function init() {
+  try {
+    const resp = await fetch('/api/health');
+    const data = await resp.json();
+    modelBadge.textContent = data.model || 'LLM';
+    if (data.rag_enabled) {
+      ragBadge.style.display = 'inline';
+    }
+    // 检查 RAG 知识库状态
+    const ragResp = await fetch('/api/rag/stats');
+    const ragData = await ragResp.json();
+    if (ragData.status === '已加载') {
+      ragBadge.textContent = `RAG (${ragData.chunks}块)`;
+      ragBadge.title = `Embedding: ${ragData.embedding_model}`;
+    }
+  } catch (e) {
+    modelBadge.textContent = '⚠️ 未连接';
+  }
+}
+init();
+
+// ─── 快捷提问 ─────────────────────────────────────────────────
+function quickAsk(text) {
+  userInput.value = text;
+  sendMessage();
+}
+
+// ─── 发送消息（核心流程） ──────────────────────────────────────
+async function sendMessage() {
+  const text = userInput.value.trim();
+  if (!text || isProcessing) return;
+
+  // 1. 显示用户消息
+  appendMessage('user', text);
+  userInput.value = '';
+  isProcessing = true;
+  sendBtn.disabled = true;
+
+  // 2. 创建一个"接收中"的占位区域，后续的思考过程和最终回复都放在这里
+  const receiverId = `receiver-${Date.now()}`;
+  const receiver = appendReceiver(receiverId);
+
+  try {
+    // 3. 发起 SSE 流式请求（根据 Agent 模式选择不同端点）
+    const apiUrl = agentMode === 'langchain' ? '/api/chat/langchain' : '/api/chat';
+    const response = await fetch(apiUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        message: text,
+        history: conversationHistory,
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
+
+    // 4. 逐行读取 SSE 事件流
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop() || '';  // 保留不完整的行
+
+      for (const line of lines) {
+        if (line.startsWith('data: ')) {
+          const event = JSON.parse(line.slice(6));
+          handleAgentEvent(event, receiver, receiverId);
+        }
+      }
+    }
+  } catch (error) {
+    // 出错时显示错误卡片
+    appendProcessCard(receiverId, 'error', '❌', '出错了', error.message);
+  } finally {
+    isProcessing = false;
+    sendBtn.disabled = false;
+    userInput.focus();
+  }
+}
+
+// ─── 处理 Agent 返回的每一步事件 ───────────────────────────────
+function handleAgentEvent(event, receiver, receiverId) {
+  switch (event.type) {
+
+    case 'thinking':
+      // Agent 正在调用 LLM，显示思考中...
+      appendProcessCard(receiverId, 'thinking', '💭', '思考中', event.content);
+      break;
+
+    case 'tool_call':
+      // Agent 决定调用工具，显示调用详情
+      const toolArgs = JSON.stringify(event.args, null, 2);
+      appendProcessCard(
+        receiverId, 'tool_call', '🔧',
+        `调用工具: ${event.name}`,
+        `参数: ${toolArgs}`
+      );
+      break;
+
+    case 'tool_result':
+      // 工具执行完毕，显示结果
+      appendProcessCard(
+        receiverId, 'tool_result', '✅',
+        `工具返回: ${event.name}`,
+        formatToolResult(event.content)
+      );
+      break;
+
+    case 'done':
+      // Agent 给出最终回复
+      // 先移除占位 receiver，再用标准气泡显示最终回答
+      appendMessage('assistant', event.content);
+
+      // 更新对话历史（只保留 user 和 assistant 的干净对话）
+      if (event.history) {
+        conversationHistory = [
+          ...conversationHistory,
+          ...event.history,
+        ];
+        // 限制历史长度，防止超过 LLM 上下文窗口
+        if (conversationHistory.length > 20) {
+          conversationHistory = conversationHistory.slice(-20);
+        }
+      }
+
+      // 移除 receiver 区域（思考过程已保留在里面，不删）
+      const el = document.getElementById(receiverId);
+      if (el) el.style.borderLeft = '3px solid #81c784';
+      break;
+
+    case 'error':
+      appendProcessCard(receiverId, 'error', '❌', '出错了', event.content);
+      break;
+  }
+
+  // 自动滚动到底部
+  chatContainer.scrollTop = chatContainer.scrollHeight;
+}
+
+// ─── 辅助函数：添加消息气泡 ────────────────────────────────────
+function appendMessage(role, content) {
+  const div = document.createElement('div');
+  div.className = `message ${role}`;
+  div.innerHTML = `
+    <div class="avatar">${role === 'user' ? '👤' : '🤖'}</div>
+    <div class="bubble">${escapeHtml(content)}</div>
+  `;
+  chatContainer.appendChild(div);
+}
+
+// ─── 辅助函数：创建接收区域（包含思考过程） ────────────────────
+function appendReceiver(id) {
+  const div = document.createElement('div');
+  div.id = id;
+  div.style.marginLeft = '46px';  // 对齐气泡
+  chatContainer.appendChild(div);
+  return div;
+}
+
+// ─── 辅助函数：添加思考过程卡片 ────────────────────────────────
+function appendProcessCard(parentId, type, icon, label, content) {
+  const parent = document.getElementById(parentId);
+  if (!parent) return;
+
+  const card = document.createElement('div');
+  card.className = `process-card ${type}`;
+
+  let displayContent = content || '';
+  // 工具返回值如果是 JSON 字符串，格式化显示
+  if (type === 'tool_result' && typeof content === 'string') {
+    displayContent = content;
+  }
+
+  card.innerHTML = `
+    <div class="label">
+      <span class="icon">${icon}</span>
+      <span>${label}</span>
+    </div>
+    <div>${escapeHtml(displayContent)}</div>
+  `;
+  parent.appendChild(card);
+}
+
+// ─── 辅助函数：格式化工具返回值 ────────────────────────────────
+function formatToolResult(content) {
+  try {
+    const obj = typeof content === 'string' ? JSON.parse(content) : content;
+    if (obj.temperature) {
+      return `${obj.city}: ${obj.temperature} | 风速 ${obj.wind_speed} | ${obj.weather}`;
+    }
+    if (obj.datetime) {
+      return `${obj.datetime} ${obj.weekday}`;
+    }
+    return JSON.stringify(obj, null, 2);
+  } catch (e) {
+    return content;
+  }
+}
+
+// ─── 辅助函数：HTML 转义 ──────────────────────────────────────
+function escapeHtml(text) {
+  if (!text) return '';
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML.replace(/\n/g, '<br>');
+}
+</script>
+
+</body>
+</html>

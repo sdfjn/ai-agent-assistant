@@ -1,0 +1,14 @@
+# Python
+__pycache__/
+.venv/
+*.pyc
+
+# 环境配置（通过 --env-file 传入）
+.env
+
+# 向量数据库（运行时重新生成）
+chroma_db/
+
+# Git
+.git/
+.gitignore
