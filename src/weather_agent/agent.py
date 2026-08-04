@@ -55,7 +55,7 @@ def create_agent(rag_tool=None):
     return create_react_agent(
         model=llm,
         tools=tools,
-        state_modifier=SYSTEM_PROMPT,
+        prompt=SYSTEM_PROMPT,
     )
 
 
