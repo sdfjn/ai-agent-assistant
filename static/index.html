@@ -297,8 +297,8 @@ async function init() {
     // 检查 RAG 知识库状态
     const ragResp = await fetch('/api/rag/stats');
     const ragData = await ragResp.json();
-    if (ragData.status === '已加载') {
-      ragBadge.textContent = `RAG (${ragData.chunks}块)`;
+    if (ragData.status === 'ready') {
+      ragBadge.textContent = `RAG (${ragData.collection_count}块)`;
       ragBadge.title = `Embedding: ${ragData.embedding_model}`;
     }
   } catch (e) {
