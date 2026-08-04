@@ -218,8 +218,8 @@
      ═══════════════════════════════════════════════════════════ -->
 <div class="header">
   <span class="logo">🤖</span>
-  <h1>AI Assistant 小A v2.0</h1>
-  <span class="badge" id="agentBadge" style="cursor:pointer;background:#1a3a1a;color:#81c784;" title="点击切换Agent模式" onclick="toggleAgentMode()">LangChain</span>
+  <h1>AI Assistant 小A v3.0</h1>
+  <span class="badge" id="agentBadge" style="background:#1a3a1a;color:#81c784;">LangGraph</span>
   <span class="badge" id="modelBadge">加载中...</span>
   <span class="badge" id="ragBadge" style="background:#1a3a1a;color:#81c784;display:none">RAG</span>
 </div>
@@ -231,13 +231,13 @@
   <div class="message assistant">
     <div class="avatar">🤖</div>
     <div class="bubble">
-      你好！我是小A，你的 AI 助手 (v2.0)。<br><br>
+      你好！我是小A，你的 AI 助手 (v3.0)。<br><br>
       我可以帮你：<br>
       🌤️ <b>查天气</b> — 试试问"北京今天天气怎么样？"<br>
       ⏰ <b>查时间</b> — 试试问"现在几点了？"<br>
       📚 <b>搜知识库</b> — 试试问"什么是RAG？""Transformer怎么工作的？"<br>
       💬 <b>聊天</b> — 随便聊聊<br><br>
-      <small>顶栏可切换 Agent 模式：<b>LangChain</b>（框架版） / <b>Native</b>（手写版）</small>
+      <small>基于 LangGraph create_react_agent，支持天气查询、时间查询、RAG 知识库搜索</small>
     </div>
   </div>
 </div>
@@ -273,9 +273,8 @@
      ═══════════════════════════════════════════════════════════ -->
 <script>
 // ─── 全局状态 ─────────────────────────────────────────────────
-let conversationHistory = [];   // 对话历史（发给后端保持上下文）
-let isProcessing = false;      // 是否正在处理中（防止重复发送）
-let agentMode = 'langchain';   // 🆕 Agent 模式: 'langchain' | 'native'
+let conversationHistory = [];
+let isProcessing = false;
 
 // ─── DOM 元素引用 ─────────────────────────────────────────────
 const chatContainer = document.getElementById('chatContainer');
@@ -286,24 +285,6 @@ const ragBadge = document.getElementById('ragBadge');
 const agentBadge = document.getElementById('agentBadge');
 
 // ─── 🆕 Agent 模式切换 ──────────────────────────────────────────
-function toggleAgentMode() {
-  // 切换前先清空对话历史
-  if (conversationHistory.length > 0) {
-    if (!confirm('切换模式会清空当前对话历史，确定吗？')) return;
-  }
-  agentMode = agentMode === 'langchain' ? 'native' : 'langchain';
-  agentBadge.textContent = agentMode === 'langchain' ? 'LangChain' : 'Native';
-  agentBadge.style.background = agentMode === 'langchain' ? '#1a3a1a' : '#1a1a3a';
-  agentBadge.style.color = agentMode === 'langchain' ? '#81c784' : '#64b5f6';
-  conversationHistory = [];  // 清空历史
-
-  appendMessage('assistant',
-    agentMode === 'langchain'
-      ? '已切换到 <b>LangChain 模式</b>（框架版 AgentExecutor）'
-      : '已切换到 <b>Native 模式</b>（手写 ReAct 循环）'
-  );
-}
-
 // ─── 初始化：检查 API 和 RAG 状态 ──────────────────────────────
 async function init() {
   try {
@@ -348,8 +329,8 @@ async function sendMessage() {
   const receiver = appendReceiver(receiverId);
 
   try {
-    // 3. 发起 SSE 流式请求（根据 Agent 模式选择不同端点）
-    const apiUrl = agentMode === 'langchain' ? '/api/chat/langchain' : '/api/chat';
+    // 3. 发起 SSE 流式请求
+    const apiUrl = '/api/chat';
     const response = await fetch(apiUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
